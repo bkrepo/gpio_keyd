@@ -41,7 +41,8 @@ int parse_config(const char *conf_file_name, const char *key_code_header)
 	FILE *cfp;
 	static char buf[255] = {0,};
 	static char ckey_name[64] = {0,};
-	int pin, key_code, line = 0;
+	static char gpio_type[16] = {0,};
+	int pin, key_code, val, line = 0;
 	struct gpio_key *pgpio_key;
 
 	if ((cfp = fopen(conf_file_name, "r")) == NULL)
@@ -53,7 +54,7 @@ int parse_config(const char *conf_file_name, const char *key_code_header)
 		++line;
 		if (buf[0] == '#')
 			continue;
-		sscanf(buf, "%s %d", ckey_name, &pin);
+		sscanf(buf, "%s %s %d %d", ckey_name, gpio_type, &pin, &val);
 
 		/* Find key code value from key code header file */
 		key_code = find_key_code(key_code_header, ckey_name);
@@ -67,8 +68,23 @@ int parse_config(const char *conf_file_name, const char *key_code_header)
 		pgpio_key = (struct gpio_key *)malloc(sizeof(struct gpio_key));
 		pgpio_key->pin = pin;
 		pgpio_key->key_code = key_code;
-		pgpio_key->val = 0;
-		pgpio_key->pre_val = 0;
+		if (!strncmp("digital", gpio_type, 7)) {
+			pgpio_key->gpio_type = DIGITAL;
+			pgpio_key->val = !val;
+			pgpio_key->pre_val = !val;
+			pgpio_key->act_val = val;
+		} else if(!strncmp("analog", gpio_type, 6)) {
+			pgpio_key->gpio_type = ANALOG;
+			pgpio_key->val = 0;
+			pgpio_key->pre_val = 0;
+			pgpio_key->act_val = val;
+		} else {
+			syslog(LOG_ERR, "%s[%d]: Unknown GPIO typecode = \"%s\"\n",
+					conf_file_name, line, gpio_type);
+			fclose(cfp);
+			errno = EINVAL;
+			goto err;
+		}
 
 		LIST_INSERT_HEAD(&gpio_key_head, pgpio_key, list);
 	}

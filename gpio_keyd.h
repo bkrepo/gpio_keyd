@@ -3,11 +3,18 @@
 
 #include <sys/queue.h>
 
+typedef enum {
+	DIGITAL,
+	ANALOG,
+} gpio_type_t;
+
 struct gpio_key {
-	int pin;	/* wiringPi number */
-	int key_code;	/* KEY code */
-	int val;	/* GPIO value */
-	int pre_val;	/* GPIO previous value */
+	int pin;		/* wiringPi pin number */
+	int key_code;		/* KEY code */
+	int val;		/* GPIO value */
+	int pre_val;		/* GPIO previous value */
+	gpio_type_t gpio_type;	/* GPIO type */
+	int act_val;		/* Active value */
 	LIST_ENTRY(gpio_key) list;
 };
 

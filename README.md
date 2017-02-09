@@ -30,21 +30,31 @@ Options:
 
 ###Configuration:
 gpio_keyd uses the configuration file which is including the GPIO-key mapping information.
-GPIO pin means the wiringPi GPIO pin number.
+GPIO pin means the wiringPi GPIO pin number. Digital GPIO can configure 'active high' or 'active low' by 'Active value'
 
-* /etc/gpio_keyd.conf
+gpio_keyd also support analog GPIO input. Analog GPIO only works with 'active low'.
+
+* (Example: /etc/gpio_keyd.conf)
 ```
-#<key code>	<GPIO pin>
-KEY_LEFT	1
-KEY_RIGHT	4
-KEY_UP		16
-KEY_DOWN	15
-KEY_ENTER	23
-KEY_ESC		22
-KEY_A		31
-KEY_B		11
-KEY_C		10
-KEY_D		6
+# Digital input
+# <Key code>	<GPIO type>	<GPIO pin>	<Active value>
+KEY_LEFT	digital		1		0
+KEY_RIGHT	digital		4		0
+KEY_UP		digital		16		0
+KEY_DOWN	digital		15		0
+KEY_ENTER	digital		23		0
+KEY_ESC		digital		22		0
+KEY_A		digital		31		0
+KEY_B		digital		11		0
+KEY_C		digital		10		0
+KEY_D		digital		6		0
+
+# Analog input
+# <Key code>	<GPIO type>	<ADC port>	<ADC active value>
+KEY_E		analog		0		0
+KEY_F		analog		0		2045
+KEY_G		analog		1		0
+KEY_H		analog		1		2045
 ```
 
 gpio_keyd need key code header file for the key code parsing.

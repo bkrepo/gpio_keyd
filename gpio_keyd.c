@@ -21,12 +21,15 @@
 
 #include "gpio_keyd.h"
 
+#define ADC_MAX	4095
+
 static int uidev_fd = -1;
 static int pid_fd = -1;
 const char *pid_file_name = "/tmp/gpio_keyd.pid";
 static bool running = false;
 const char *conf_file_name = "/etc/gpio_keyd.conf";
 const char *key_code_header = "/usr/include/linux/input.h";
+static int range = 100;
 
 static int init_uinput(void)
 {
@@ -131,13 +134,22 @@ static void gpio_key_poll(void)
 	struct gpio_key *p;
 
 	for (p = gpio_key_head.lh_first; p != NULL; p = p->list.le_next) {
-		p->val = digitalRead(p->pin);
-		if (!p->val && (p->val != p->pre_val))
-			sendKey(p->key_code, 1);
-		else if (p->val && (p->val != p->pre_val))
-			sendKey(p->key_code, 0);
+		if (p->gpio_type == DIGITAL) {
+			p->val = digitalRead(p->pin);
+			if ((p->val == p->act_val) && (p->val != p->pre_val))
+				sendKey(p->key_code, 1);
+			else if ((p->val != p->act_val) && (p->val != p->pre_val))
+				sendKey(p->key_code, 0);
+		} else if (p->gpio_type == ANALOG) {
+			p->val = analogRead(p->pin);
+			if (((p->val <= p->act_val + range) && (p->val >= p->act_val - range)) &&
+					((p->val > p->pre_val + range) || (p->val < p->pre_val - range)))
+				sendKey(p->key_code, 1);
+			else if ((p->val > ADC_MAX - range) &&
+					((p->val > p->pre_val + range) || (p->val < p->pre_val - range)))
+				sendKey(p->key_code, 0);
+		}
 		p->pre_val = p->val;
-
 	}
 }
 
