@@ -28,7 +28,6 @@ static int pid_fd = -1;
 const char *pid_file_name = "/tmp/gpio_keyd.pid";
 static bool running = false;
 const char *conf_file_name = "/etc/gpio_keyd.conf";
-const char *key_code_header = "/usr/include/linux/input.h";
 static int range = 100;
 
 static int init_uinput(void)
@@ -137,17 +136,17 @@ static void gpio_key_poll(void)
 		if (p->gpio_type == DIGITAL) {
 			p->val = digitalRead(p->pin);
 			if ((p->val == p->act_val) && (p->val != p->pre_val))
-				sendKey(p->key_code, 1);
+				sendKey((int)p->key_code, 1);
 			else if ((p->val != p->act_val) && (p->val != p->pre_val))
-				sendKey(p->key_code, 0);
+				sendKey((int)p->key_code, 0);
 		} else if (p->gpio_type == ANALOG) {
 			p->val = analogRead(p->pin);
 			if (((p->val <= p->act_val + range) && (p->val >= p->act_val - range)) &&
 					((p->val > p->pre_val + range) || (p->val < p->pre_val - range)))
-				sendKey(p->key_code, 1);
+				sendKey((int)p->key_code, 1);
 			else if ((p->val > ADC_MAX - range) &&
 					((p->val > p->pre_val + range) || (p->val < p->pre_val - range)))
-				sendKey(p->key_code, 0);
+				sendKey((int)p->key_code, 0);
 		}
 		p->pre_val = p->val;
 	}
@@ -179,7 +178,7 @@ static void handle_signal(int sig)
 		/* Reset signal handling to default behavior */
 		signal(sig, SIG_DFL);
 	} else if (sig == SIGHUP) {
-		parse_config(conf_file_name, key_code_header);
+		parse_config(conf_file_name);
 	}
 }
 
@@ -238,7 +237,6 @@ static void print_usage(void)
 	printf("Usage: gpio_keyd [option]\n");
 	printf("Options:\n");
 	printf("  -c <config file>           set the configuration file (default: \"/etc/gpio_keyd.conf\")\n");
-	printf("  -k <key code header>       set the key code header file (default: \"/usr/include/linux/input.h\")\n");
 	printf("  -i <polling interval>      set polling interval time (default: 10000 us)\n");
 	printf("  -d                         run as deamon\n");
 	printf("  -h                         help\n");
@@ -262,24 +260,21 @@ int main(int argc, char **argv)
 			case 'c':
 				conf_file_name = optarg;
 				break;
-			case 'k':
-				key_code_header = optarg;
-				break;
 			case 'i':
 				interval = atoi(optarg);
 				break;
 		}
 	}
 
-	if (is_daemon)
-		daemonize();
-
-	parse_config(conf_file_name, key_code_header);
-	init_gpio_keyd();
-
 	/* Open system log and write message to it */
 	openlog("gpio_keyd", LOG_PID|LOG_CONS, LOG_DAEMON);
 	syslog(LOG_INFO, "Started gpio_keyd");
+
+	if (is_daemon)
+		daemonize();
+
+	parse_config(conf_file_name);
+	init_gpio_keyd();
 
 	/* Register signal handler */
 	signal(SIGINT, handle_signal);

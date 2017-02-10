@@ -3,47 +3,84 @@
 #include <stdlib.h>
 #include <errno.h>
 #include <syslog.h>
+#include <unistd.h>
+
+#define _GNU_SOURCE
+#define __USE_GNU
+#include <search.h>
 
 #include "gpio_keyd.h"
 
-static int find_key_code(const char *fname, const char *key_name)
+struct hsearch_data htab;
+#define HTABLE_COUNT	1024
+
+static int create_hash_table(const char *fname)
 {
 	FILE *hfp;
 	static char buf[255] = {0,};
 	static char hkey_name[64] = {0,};
 	static char key_code_str[16] = {0,};
-	int key_code;
+	static char *keys[HTABLE_COUNT];
+	ENTRY e, *ep;
+	int i=0, slen;
 
+	printf("header file: %s\n", fname);
 	if ((hfp = fopen(fname, "r")) == NULL) {
 		syslog(LOG_ERR, "%s: Failed key code header file", __func__);
 		return -errno;
 	}
 
+	hcreate_r(HTABLE_COUNT, &htab);
 	while (fgets(buf, 255, (FILE *)hfp)) {
 		if (!strncmp("#define BTN_", buf, 11) ||
 		    !strncmp("#define KEY_", buf, 11)) {
 			sscanf(buf+8, "%s %s", hkey_name, key_code_str);
-
-			if (!strncmp(hkey_name, key_name,
-			   	     strlen(hkey_name) >= strlen(key_name) ? strlen(hkey_name):strlen(key_name))
-				    ) {
+			slen = strlen(hkey_name);
+			keys[i] = (char *)malloc(slen+1);
+			keys[i][slen] = '\0';
+			strncpy(keys[i], hkey_name, slen);
+			e.key = keys[i++];
+			e.data = (void *)strtol(key_code_str, NULL, 0);
+			if (hsearch_r(e, ENTER, &ep, &htab) == 0) {
+				syslog(LOG_ERR, "%s: hash table entry failed", __func__);
 				fclose(hfp);
-				return (int)strtol(key_code_str, NULL, 0);
+				return -errno;
 			}
 		}
 	}
 	fclose(hfp);
-	return -1;
+
+	return 0;
 }
 
-int parse_config(const char *conf_file_name, const char *key_code_header)
+static void destroy_hash_table(void)
+{
+	hdestroy_r(&htab);
+}
+
+int parse_config(const char *conf_file_name)
 {
 	FILE *cfp;
 	static char buf[255] = {0,};
 	static char ckey_name[64] = {0,};
 	static char gpio_type[16] = {0,};
-	int pin, key_code, val, line = 0;
+	int pin, val, line = 0;
 	struct gpio_key *pgpio_key;
+	const char *key_code_header = "/usr/include/linux/input-event-codes.h";
+	ENTRY e, *ep;
+
+	/* Find key code header file. */
+	if (access(key_code_header, F_OK) == -1)
+		key_code_header = "/usr/include/linux/input.h";
+	if (access(key_code_header, F_OK) == -1) {
+		syslog(LOG_ERR, "%s: could not find key code header file.
+				('/usr/include/linux/input-event-codes.h' or '/usr/include/linux/input.h')
+				", __func__);
+		goto err;
+	}
+
+	if (create_hash_table(key_code_header) < 0)
+		goto err;
 
 	if ((cfp = fopen(conf_file_name, "r")) == NULL)
 		goto err;
@@ -57,8 +94,8 @@ int parse_config(const char *conf_file_name, const char *key_code_header)
 		sscanf(buf, "%s %s %d %d", ckey_name, gpio_type, &pin, &val);
 
 		/* Find key code value from key code header file */
-		key_code = find_key_code(key_code_header, ckey_name);
-		if (key_code == -1) {
+		e.key = ckey_name;
+		if (hsearch_r(e, FIND, &ep, &htab) == 0) {
 			syslog(LOG_ERR, "%s[%d]: Unknown key code = \"%s\"\n",
 				conf_file_name, line, ckey_name);
 			fclose(cfp);
@@ -67,7 +104,7 @@ int parse_config(const char *conf_file_name, const char *key_code_header)
 		}
 		pgpio_key = (struct gpio_key *)malloc(sizeof(struct gpio_key));
 		pgpio_key->pin = pin;
-		pgpio_key->key_code = key_code;
+		pgpio_key->key_code = (long)ep->data;
 		if (!strncmp("digital", gpio_type, 7)) {
 			pgpio_key->gpio_type = DIGITAL;
 			pgpio_key->val = !val;
@@ -90,6 +127,7 @@ int parse_config(const char *conf_file_name, const char *key_code_header)
 	}
 
 	fclose(cfp);
+	destroy_hash_table();
 
 	return 0;
 err:

@@ -10,7 +10,7 @@ typedef enum {
 
 struct gpio_key {
 	int pin;		/* wiringPi pin number */
-	int key_code;		/* KEY code */
+	long key_code;		/* KEY code */
 	int val;		/* GPIO value */
 	int pre_val;		/* GPIO previous value */
 	gpio_type_t gpio_type;	/* GPIO type */
@@ -20,6 +20,6 @@ struct gpio_key {
 
 LIST_HEAD(listhead, gpio_key) gpio_key_head;
 
-extern int parse_config(const char *conf_file_name, const char *key_code_header);
+int parse_config(const char *conf_file_name);
 
 #endif

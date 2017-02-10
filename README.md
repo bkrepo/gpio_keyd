@@ -22,7 +22,6 @@ $ sudo make install
 Usage: gpio_keyd [option]
 Options:
   -c <config file>           set the configuration file (default: "/etc/gpio_keyd.conf")
-  -k <key code header>       set the key code header file (default: "/usr/include/linux/input.h")
   -i <polling interval>      set polling interval time (default: 10000 us)
   -d                         run as deamon
   -h                         help
@@ -55,10 +54,4 @@ KEY_E		analog		0		0
 KEY_F		analog		0		2045
 KEY_G		analog		1		0
 KEY_H		analog		1		2045
-```
-
-gpio_keyd need key code header file for the key code parsing.
-This header file is different each system (default: '/usr/include/linux/input.h'). If the header file is wrong in your system, then change the header file with '-k' option.
-```
-$ gpio_keyd -k /usr/include/linux/input-event-codes.h
 ```
