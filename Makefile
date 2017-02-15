@@ -5,7 +5,7 @@ CC := $(CROSS_COMPILE)gcc
 CFLAGS = -O2 -Wstrict-prototypes -Wmissing-prototypes
 SRC := $(wildcard *.c)
 OBJ := $(patsubst %.c,%.o,$(SRC))
-LIBS = -lwiringPi -lpthread
+LIBS = -lwiringPi
 
 all: $(TARGET)
 
