@@ -158,8 +158,13 @@ static void init_gpio_keyd(void)
 
 	wiringPiSetup();
 
-	for (p = gpio_key_head.lh_first; p != NULL; p = p->list.le_next)
+	for (p = gpio_key_head.lh_first; p != NULL; p = p->list.le_next) {
 		pinMode(p->pin, INPUT);
+		if (p->act_val)
+			pullUpDnControl(p->pin, PUD_DOWN);
+		else
+			pullUpDnControl(p->pin, PUD_UP);
+	}
 }
 
 static void handle_signal(int sig)
