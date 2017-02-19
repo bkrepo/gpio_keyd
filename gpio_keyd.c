@@ -96,12 +96,16 @@ static int close_uinput(void)
 	return 0;
 }
 
-static int sendSync(struct input_event *uidev_ev)
+static int sendSync(void)
 {
+	struct input_event uidev_ev;
+
+	memset(&uidev_ev, 0, sizeof(struct input_event));
+	gettimeofday(&uidev_ev.time, NULL);
 	uidev_ev->type = EV_SYN;
 	uidev_ev->code = SYN_REPORT;
 	uidev_ev->value = 0;
-	if (write(uidev_fd, uidev_ev, sizeof(struct input_event)) < 0) {
+	if (write(uidev_fd, &uidev_ev, sizeof(struct input_event)) < 0) {
 		syslog(LOG_ERR, "%s: Failed wirte event", __func__);
 		return -errno;
 	}
@@ -122,8 +126,6 @@ static int sendKey(int key_code, int value)
 		syslog(LOG_ERR, "%s: Failed write event", __func__);
 		return -errno;
 	}
-
-	sendSync(&uidev_ev);
 
 	return 0;
 }
@@ -150,6 +152,8 @@ static void gpio_key_poll(void)
 		}
 		p->pre_val = p->val;
 	}
+
+	sendSync();
 }
 
 static void init_gpio_keyd(void)
