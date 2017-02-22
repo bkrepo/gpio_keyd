@@ -4,7 +4,7 @@ gpio_keyd
 gpio_keyd is a maaping program between GPIO and key inputs by uinput.
 gpio_keyd needs wiringPi library in order to control GPIO.
 
-###Installation:
+###Installation
 
 ```
 $ git clone https://github.com/hardkernel/wiringPi.git
@@ -17,7 +17,7 @@ $ make
 $ sudo make install
 ```
 
-###Usage:
+###Usage
 ```
 Usage: gpio_keyd [option]
 Options:
@@ -27,7 +27,7 @@ Options:
   -h                         help
 ```
 
-###Configuration:
+###Configuration
 gpio_keyd uses the configuration file which is including the GPIO-key mapping information.
 GPIO pin means the wiringPi GPIO pin number. Digital GPIO can configure 'active high' or 'active low' by 'Active value'
 
@@ -55,3 +55,6 @@ KEY_F		analog		0		2045
 KEY_G		analog		1		0
 KEY_H		analog		1		2045
 ```
+
+####Donation
+[![](https://www.paypalobjects.com/en_US/i/btn/btn_donateCC_LG.gif)](https://www.paypal.com/cgi-bin/webscr?cmd=_s-xclick&hosted_button_id=6M2HACXAUCBEW)
