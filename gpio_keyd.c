@@ -118,9 +118,9 @@ static int sendSync(void)
 
 	memset(&uidev_ev, 0, sizeof(struct input_event));
 	gettimeofday(&uidev_ev.time, NULL);
-	uidev_ev->type = EV_SYN;
-	uidev_ev->code = SYN_REPORT;
-	uidev_ev->value = 0;
+	uidev_ev.type = EV_SYN;
+	uidev_ev.code = SYN_REPORT;
+	uidev_ev.value = 0;
 	if (write(uidev_fd, &uidev_ev, sizeof(struct input_event)) < 0) {
 		syslog(LOG_ERR, "%s: Failed wirte event", __func__);
 		return -errno;
